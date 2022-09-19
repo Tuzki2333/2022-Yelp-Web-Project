@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            border: 0;
+            box-sizing: border-box;
+            /* font-family: Arial, sans-serif; */
+        }
+
+        input[type=text],
+        input[type=number],
+        select {
+            width: 100%;
+            height: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+
+        label {
+            font-size: small;
+            margin-bottom: 5px;
+        }
+
+        .column {
+            float: left;
+            width: 50%;
+            padding: 10px;
+        }
+
+        /* Clear floats after the columns */
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        th {
+            padding: 10px 0;
+            background-color: #666;
+            border: 0px;
+        }
+
+        button {
+            background-color: #666;
+        }
+
+        table.results_table tr>*:nth-child(6) {
+            display: none;
+        }
+
+        table.results_table td {
+            height: 100px;
+            text-align: center;
+            border: 1px solid grey;
+        }
+
+        p {
+            margin-bottom: 20px;
+            font-size: small;
+        }
+
+        #rcorner1 {
+            border-radius: 25px;
+            background: #73AD21;
+            padding: 5px;
+            width: 100px;
+            height: 25px;
+            text-align: center;
+        }
+
+        #rcorner2 {
+            border-radius: 25px;
+            background: red;
+            padding: 5px;
+            width: 100px;
+            height: 25px;
+            text-align: center;
+        }
+
+        table.images td {
+            width: 33%;
+            height: auto;
+            border: 1px solid grey;
+            padding: 5px;
+            vertical-align: top;
+        }
+
+        img {
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+        }
+
+        table.images img {
+            object-fit: cover;
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div align="center">
+        <div style="width: 400px; border: 1px solid black; margin-top: 10px;" align="left">
+            <header style="color: white; background-color: #666; padding: 20px;">
+                <h3 style="margin-bottom: 0px; margin-top: 0px;">Business Search</h3>
+                <br>
+                Fill out the form to get businesses near you!
+            </header>
+            <div>
+                <form id="search" action="/search" style="padding: 20px; color: #666; box-sizing: border-box;">
+                    <label for="keyword">Keyword<span style="color: red;">*</span></label>
+                    <br>
+                    <input type="text" id="keyword" name="keyword" required>
+                    <br>
+                    <div class="row">
+                        <div style="width: 35%; float: left;">
+                            <label for="distance">Distance(miles)</label>
+                            <input type="number" id="distance" name="distance" value="10">
+                        </div>
+                        <div style="width: 60%; float: right;">
+                            <label for="category">Category<span style="color: red;">*</span></label>
+                            <select id="category" name="category">
+                                <option value="Default">Default</option>
+                                <option value="Arts & Entertainment">Arts & Entertainment</option>
+                                <option value="Health & Medical">Health & Medical</option>
+                                <option value="Hotels & Travel">Hotels & Travel</option>
+                                <option value="Food">Food</option>
+                                <option value="Professional Services">Professional Services</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label for="location">Location<span aria-label="required" style="color: red;">*</span></label>
+                    <br>
+                    <input type="text" id="location" name="location" required>
+                    <br>
+                    <hr style="
+                    border: 0;
+                    clear:both;
+                    display:block;
+                    width: 100%;               
+                    background-color:grey;
+                    height: 1px;
+                    margin-top: 5px; margin-bottom: 5px;">
+                    <label style="font-size: medium;" for="check">Want us to auto-detect your location? Check
+                        here</label>
+                    <input type="checkbox" id="check" name="check" onclick="autoDetect()">
+                    <script>
+                        function autoDetect() {
+                            var checkbox = document.getElementById("check");
+                            var location = document.getElementById("location");
+                            if (checkbox.checked) {
+                                location.value = "";
+                                location.disabled = true;
+                            }
+                            else {
+                                location.disabled = false;
+                            }
+                        }
+                    </script>
+                    <br>
+                    <br>
+                    <input type="button" value="SUBMIT"
+                        style="width: 100px; height: 40px; color: white; background-color: blue; box-shadow: 0px 5px #666;"
+                        onclick="search()">
+                    <input type="button" value="CLEAR"
+                        style="width: 100px; height: 40px; color: white; background-color: yellow; box-shadow: 0px 5px #666;"
+                        onclick="clearAll()">
+                    <script>
+                        function clearAll() {
+                            document.getElementById("keyword").value = "";
+                            document.getElementById("distance").value = 10;
+                            document.getElementById("category").value = "Default";
+                            document.getElementById("location").value = "";
+                            document.getElementById("location").disabled = false;
+                            document.getElementById("check").checked = false;
+                            document.getElementById("results_table").setAttribute("hidden", "hidden");
+                            document.getElementById("detail").setAttribute("hidden", "hidden");
+                        }
+                    </script>
+                    <script>
+                        GEO_API_KEY = "AIzaSyBu3 - LqEwR9wL - AacWxH9onvWVXJw0jfoY";
+                        IPINFO_TOKEN = "73239454485b27";
+                        METER_TO_MILE_FACTOR = 0.000621371
+                        function search() {
+                            // document.write("search");
+                            searchForm = document.forms["search"];
+                            var xhttp = new XMLHttpRequest();
+                            xhttp.onreadystatechange = function () {
+                                if (this.readyState == 4 && this.status == 200) {
+                                    search_response = JSON.parse(this.responseText);
+                                    num_businesses = Object.keys(search_response.businesses).length
+                                    // document.write(this.responseText);
+                                    // document.write(Object.keys(search_response.businesses).length);
+                                    if (num_businesses <= 0) {
+                                        document.getElementById("no_record").removeAttribute("hidden");
+                                        document.getElementById("results_table").setAttribute("hidden", "hidden");
+                                    }
+                                    else {
+                                        document.getElementById("no_record").setAttribute("hidden", "hidden");
+                                        document.getElementById("results_table").removeAttribute("hidden");
+                                        var table = document.querySelector("#results_table tbody");
+                                        var results_html = "";
+                                        var index = 1
+                                        search_response.businesses.forEach(element => {
+                                            var distance_in_miles = element.distance * METER_TO_MILE_FACTOR
+                                            results_html += `<tr>
+                                            <td>${index}</td>
+                                            <td><img src=${element.image_url}></td>
+                                            <td>${element.name}</td>
+                                            <td>${element.rating}</td>
+                                            <td>${distance_in_miles.toFixed(2)}</td>
+                                            <td>${element.id}</td>
+                                            </tr>`;
+                                            index += 1;
+                                        });
+                                        table.innerHTML = results_html;
+                                        document.getElementById("results").scrollIntoView();
+                                    }
+                                }
+                            };
+                            // get latitude, longitude if location
+                            if (searchForm.location.disabled == false) {
+                                // document.write("location available");
+                                var xhttp_geocoding = new XMLHttpRequest();
+                                xhttp_geocoding.onreadystatechange = function () {
+                                    if (this.readyState == 4 && this.status == 200) {
+                                        geo_response = JSON.parse(this.responseText);
+                                        // document.write(geo_response.results[0].geometry.location.lat);
+                                        // document.write(",");
+                                        // document.write(geo_response.results[0].geometry.location.lng);
+                                        latitude = geo_response.results[0].geometry.location.lat;
+                                        longitude = geo_response.results[0].geometry.location.lng;
+                                        xhttp.open("GET", "/search?keyword=" + searchForm.keyword.value + "&distance=" + searchForm.distance.value + "&category=" + searchForm.category.value + "&latitude=" + latitude + "&longitude=" + longitude, true);
+                                        xhttp.send();
+                                    }
+                                };
+                                xhttp_geocoding.open("GET", "https://maps.googleapis.com/maps/api/geocode/json?address=" + searchForm.location.value +
+                                    "&key=" + GEO_API_KEY, true);
+                                xhttp_geocoding.send();
+                            }
+                            else {
+                                // document.write("location disabled");
+                                var xhttp_ip = new XMLHttpRequest();
+                                xhttp_ip.onreadystatechange = function () {
+                                    if (this.readyState == 4 && this.status == 200) {
+                                        ip_response = JSON.parse(this.responseText);
+                                        // document.write(ip_response.loc.split(",")[0]);
+                                        // document.write(",");
+                                        // document.write(ip_response.loc.split(",")[1]);
+                                        latitude = ip_response.loc.split(",")[0];
+                                        longitude = ip_response.loc.split(",")[1];
+                                        xhttp.open("GET", "/search?keyword=" + searchForm.keyword.value + "&distance=" + searchForm.distance.value + "&category=" + searchForm.category.value + "&latitude=" + latitude + "&longitude=" + longitude, true);
+                                        xhttp.send();
+                                    }
+                                };
+                                xhttp_ip.open("GET", "https://ipinfo.io/?token=" + IPINFO_TOKEN);
+                                xhttp_ip.send();
+                            }
+                        }
+                    </script>
+                </form>
+            </div>
+        </div>
+        <div id="no_record" style="width: 800px; border: 1px solid black; margin-top: 50px; padding: 10px 0;" hidden>
+            <p style="font-size: large;">No record has been found</p>
+        </div>
+        <div id="results" style="width: 800px; border: 0px; margin-top: 100px;">
+            <table id="results_table" class="results_table" style="width: 100%; border: 0px;border-collapse: collapse;"
+                hidden>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"><button>No.</button></th>
+                        <th style="width: 100px;"><button>Image</button></th>
+                        <th onclick="sortTable(2,'str','asc')"><button>Business Name</button></th>
+                        <th onclick="sortTable(3,'num','desc')" style="width: 150px;"><button>Rating</button></th>
+                        <th onclick="sortTable(4,'num','asc')" style="width: 150px;"><button>Distance (miles)</button>
+                        </th>
+                        <th style="width: 0px;"><button>id</button></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>3</td>
+                        <td><img
+                                src="https://d33wubrfki0l68.cloudfront.net/b4c5aa9328a643b6e895262902bc51440b78341a/7f9c0/images/avatar2.jpg">
+                        </td>
+                        <td>testtttttttttt</td>
+                        <td>4.9</td>
+                        <td>1.81</td>
+                    </tr>`
+                </tbody>
+            </table>
+        </div>
+        <script>
+            function sortTable(col, type, dir) {
+                var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+                table = document.getElementById("results_table");
+                switching = true;
+                /*Make a loop that will continue until
+                no switching has been done:*/
+                while (switching) {
+                    //start by saying: no switching is done:
+                    switching = false;
+                    rows = table.rows;
+                    /*Loop through all table rows (except the
+                    first, which contains table headers):*/
+                    for (i = 1; i < (rows.length - 1); i++) {
+                        //start by saying there should be no switching:
+                        shouldSwitch = false;
+                        /*Get the two elements you want to compare,
+                        one from current row and one from the next:*/
+                        x = rows[i].getElementsByTagName("TD")[col];
+                        y = rows[i + 1].getElementsByTagName("TD")[col];
+                        /*check if the two rows should switch place,
+                        based on the direction, asc or desc:*/
+                        if (dir == "asc") {
+                            if (type == "str") {
+                                if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                                    //if so, mark as a switch and break the loop:
+                                    shouldSwitch = true;
+                                    break;
+                                }
+                            }
+                            else if (type == "num") {
+                                if (Number(x.innerHTML) > Number(y.innerHTML)) {
+                                    shouldSwitch = true;
+                                    break;
+                                }
+                            }
+                        } else if (dir == "desc") {
+                            if (type == "str") {
+                                if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                                    //if so, mark as a switch and break the loop:
+                                    shouldSwitch = true;
+                                    break;
+                                }
+                            }
+                            else if (type == "num") {
+                                if (Number(x.innerHTML) < Number(y.innerHTML)) {
+                                    shouldSwitch = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (shouldSwitch) {
+                        /*If a switch has been marked, make the switch
+                        and mark that a switch has been done:*/
+                        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                        switching = true;
+                        //Each time a switch is done, increase this count by 1:
+                        switchcount++;
+                    } else {
+                        /*If no switching has been done AND the direction is "asc",
+                        set the direction to "desc" and run the while loop again.*/
+                        if (switchcount == 0 && dir == "asc") {
+                            dir = "desc";
+                            switching = true;
+                        }
+                        else if (switchcount == 0 && dir == "desc") {
+                            dir = "asc";
+                            switching = true
+                        }
+                    }
+                }
+                // keep the No. asc
+                rows = table.rows;
+                for (i = 1; i < (rows.length - 1); i++) {
+                    rows[i].cells[0].innerHTML = i;
+                }
+            }
+        </script>
+        <script>
+            tbody = document.querySelector('#results_table tbody');
+            tbody.addEventListener('click', function (e) {
+                const cell = e.target.closest('td');
+                if (!cell) { return; }
+                const row = cell.parentElement;
+                if (row.cells[2] != cell) { return; }
+                var business_id = row.cells[5].innerHTML
+                var xhttp_detail = new XMLHttpRequest();
+                xhttp_detail.onreadystatechange = function () {
+                    if (this.readyState == 4 && this.status == 200) {
+                        // document.write(this.responseText);
+                        detail_response = JSON.parse(this.responseText);
+                        document.getElementById("detail_name").innerHTML = detail_response.name;
+                        var detail_html_left = "";
+                        var detail_html_right = "";
+                        var status = "Open Now";
+                        if (detail_response.is_closed) {
+                            status = "Closed";
+                            detail_html_left += `<h3>Status</h3>
+                            <p id="rcorner2">${status}</p>`;
+                        }
+                        else {
+                        detail_html_left += `<h3>Status</h3>
+                            <p id="rcorner1">${status}</p>`;}
+                        var address = detail_response.location.address1;
+                        if (detail_response.location.address2 != "") {
+                            address += " " + detail_response.location.address2;
+                        }
+                        if (detail_response.location.address3 != "") {
+                            address += " " + detail_response.location.address3;
+                        }
+                        if (detail_response.location.city != "") {
+                            address += ", " + detail_response.location.city;
+                        }
+                        if (detail_response.location.state != "") {
+                            address += ", " + detail_response.location.state;
+                        }
+                        address += " " + detail_response.location.zip_code;
+                        detail_html_left += `<h3>Address</h3>
+                            <p>${address}</p>`;
+                        var transactions = "";
+                        for (var i = 0; i < detail_response.transactions.length; i++) {
+                            transactions += detail_response.transactions[i] + " ";
+                        }
+                        if (transactions != "") {
+                            detail_html_left += `<h3>Transactions Supported</h3>
+                            <p>${transactions}</p>`;
+                        }
+                        var yelp_link = detail_response.url;
+                        if (yelp_link != "") {
+                            detail_html_left += `<h3>More Info</h3>
+                            <p><a href="${yelp_link}">Yelp</a></p>`;
+                        }
+                        var categories = ""
+                        for (var i = 0; i < detail_response.categories.length; i++) {
+                            if (i != 0) { categories += " | " }
+                            categories += detail_response.categories[i].title;
+                        }
+                        if (categories != "") {
+                            detail_html_right += `<h3>Category</h3>
+                            <p>${categories}</p>`;
+                        }
+                        var phone = "";
+                        if (detail_response.phone.length == 12 && detail_response.phone.slice(0, 2) == "+1") {
+                            phone += "(" + detail_response.phone.slice(2, 5) + ")" + detail_response.phone.slice(5, 8) + "-" + detail_response.phone.slice(8, 12);
+                        }
+                        else {
+                            phone += detail_response.phone;
+                        }
+                        if (phone != "") {
+                            detail_html_right += `<h3>Phone Number</h3>
+                            <p>${phone}</p>`;
+                        }
+                        var price = detail_response.price;
+                        if (price != "") {
+                            detail_html_right += `<h3>Price</h3>
+                            <p>${price}</p>`;
+                        }
+                        // document.write(status, address, transactions, yelp_link, categories, phone, price);
+                        document.getElementById("detail_info_left").innerHTML = detail_html_left;
+                        document.getElementById("detail_info_right").innerHTML = detail_html_right;
+                        document.getElementById("detail_image_1").innerHTML = `<img
+                                src="${detail_response.photos[0]}">`;
+                        document.getElementById("detail_image_2").innerHTML = `<img
+                                src="${detail_response.photos[1]}">`;
+                        document.getElementById("detail_image_3").innerHTML = `<img
+                                src="${detail_response.photos[2]}">`;
+                        document.getElementById("detail").removeAttribute("hidden");
+                        document.getElementById("detail").scrollIntoView();
+                    }
+                };
+                xhttp_detail.open("GET", "/detail?id=" + business_id, true);
+                xhttp_detail.send();
+            });
+        </script>
+        <div id="detail" style="width: 800px; border: 1px solid black; margin-top: 200px; margin-bottom: 200px;" hidden>
+            <div style="padding-top: 20px">
+                <h3 id="detail_name" style="margin-bottom: 10px;">Bobabbb</h1>
+                    <hr style="
+                    border: 0;
+                    clear:both;
+                    display:block;
+                    width: 96%;               
+                    background-color:grey;
+                    height: 1px;">
+            </div>
+            <div id="detail_info" class="row">
+                <div id="detail_info_left" class="column" align="left">
+                    <h3>Status</h3>
+                    <p id="rcorner2">Open Now</p>
+                    <h3>Address</h3>
+                    <p>2121E 7th Pl Los Angeles, CA 90000</p>
+                    <h3>Transactions Supported</h3>
+                    <p>delivery</p>
+                    <h3>More Info</h3>
+                    <p><a href="">Yelp</a></p>
+                </div>
+                <div id="detail_info_right" class="column" align="left">
+                    <h3>Category</h3>
+                    <p>Pizza | Chinese</p>
+                    <h3>Address</h3>
+                    <p>2121E 7th Pl Los Angeles, CA 90000</p>
+                    <h3>Status</h3>
+                    <p>Open Now</p>
+
+                </div>
+            </div>
+            <div style="padding: 5px;">
+                <table class="images" style="width: 100%; border: 0px; border-collapse: collapse;">
+                    <tr>
+                        <td id="detail_image_1"><img
+                                src="https://d33wubrfki0l68.cloudfront.net/b4c5aa9328a643b6e895262902bc51440b78341a/7f9c0/images/avatar2.jpg">
+                        </td>
+                        <td id="detail_image_2"><img
+                                src="https://d33wubrfki0l68.cloudfront.net/b4c5aa9328a643b6e895262902bc51440b78341a/7f9c0/images/avatar2.jpg">
+                        </td>
+                        <td id="detail_image_3"><img
+                                src="https://d33wubrfki0l68.cloudfront.net/b4c5aa9328a643b6e895262902bc51440b78341a/7f9c0/images/avatar2.jpg">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
